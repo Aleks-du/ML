@@ -36,7 +36,7 @@ print(df.shape[0],
 predict
 
 #матрица неточностей
-#from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix
 
-#cnf_matrix = confusion_matrix(model, predict)
-#cnf_matrix
+cnf_matrix = confusion_matrix(target, predict)
+cnf_matrix
