@@ -1,5 +1,8 @@
 #Определить какой из трех классификаторов (kNN, наивный Байес, решающее дерево) лучший в метрике accuracy.
 #решающее дерево
+import numpy as np
+import pandas as pd
+import sklearn
 from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
