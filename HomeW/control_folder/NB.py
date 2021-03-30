@@ -12,7 +12,7 @@ senti = data['sentiment']
 # приводим к бинарному признаку не трогая родной столбец
 data['senti'] = data['sentiment'].map({'negative': 0, 'positive': 1})
 #выводим таблицу
-data.head()
+#data.head()
 
 
 X = data['review']
@@ -22,7 +22,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 # ограничиваемся 200 "выборкой"
 vectorizer = CountVectorizer(stop_words="english",max_features=200)
 X_vec = vectorizer.fit_transform(X)
-print(vectorizer.get_feature_names())
+#print(vectorizer.get_feature_names())
 
 #смотрим на первый текст
 #data['review'][0]
