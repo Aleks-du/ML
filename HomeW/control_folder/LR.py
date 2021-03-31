@@ -24,9 +24,11 @@ X_vec = vectorizer.fit_transform(X)
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
-clf = LogisticRegression(solver="liblinear").fit(X_vec, y)
-#clf = LogisticRegression(solver="newton-cg").fit(X_vec, y)
-#clf = LogisticRegression(solver="lbfgs").fit(X_vec, y)
-#clf = LogisticRegression(solver="sag", max_iter=1000).fit(X_vec, y)
-#clf = LogisticRegression(solver="saga", max_iter=1000).fit(X_vec, y)
-roc_auc_score(y, clf.predict_proba(X_vec)[:, 1])
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, random_state=0)
+clf = LogisticRegression(solver="liblinear").fit(X_train, y_train)
+roc_auc_score(y_test, clf.predict_proba(X_test)[:, 1])
+#clf = LogisticRegression(solver="newton-cg").fit(X_train, y_train)
+#clf = LogisticRegression(solver="lbfgs").fit(X_train, y_train)
+#clf = LogisticRegression(solver="sag", max_iter=1000).fit(X_train, y_train)
+#clf = LogisticRegression(solver="saga", max_iter=1000).fit(X_train, y_train)
