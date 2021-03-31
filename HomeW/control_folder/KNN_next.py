@@ -31,5 +31,5 @@ X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, ran
 from sklearn.metrics import roc_auc_score
 
 neigh = KNeighborsClassifier(n_neighbors=27)
-neigh.fit(X_test, y_test)
+neigh.fit(X_train, y_train)
 roc_auc_score(y_test, neigh.predict_proba(X_test)[:, 1])
