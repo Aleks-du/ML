@@ -30,6 +30,8 @@ X_vec = vectorizer.fit_transform(X)
 #X_vec[0].toarray()
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X_vec, y, test_size=0.2, random_state=0)
 clf = MultinomialNB()
-clf.fit(X_vec, y)
-roc_auc_score(y, clf.predict_proba(X_vec)[:, 1])
+clf.fit(X_train, y_train)
+roc_auc_score(y_test, clf.predict_proba(X_test)[:, 1])
