@@ -1,5 +1,16 @@
-MultinomialNB		0.8415408784
-RandomForest		0.8403463169695315
-KNeighbors		0.7733212727423644 (считал Евклодово пространство)
-DecisionTree		
+MultinomialNB			      0.8415408784
+RandomForest			      0.8403463169695315
+KNeighbors			        0.7733212727423644 (считал Евклодово пространство)
+DecisionTree			      0.6680677953219708
+
 LogisticRegression
+!	solver="liblinear"	  0.8679621472000001
+	solver="lbfgs"  	    0.8679625216		(по умолчанию)
+	solver="newton-cg"	  0.8679620687999998
+	solver="sag"		      0.8679417088000001	
+!	solver="saga"		      0.8679420383999998
+
+sag и saga "нестабильны" точность меняется.
+
+dataset:
+https://www.kaggle.com/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews
