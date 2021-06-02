@@ -331,3 +331,126 @@ def corrplot(df, method="pearson", annot=True, **kwargs):
 corrplot(df_train, annot=None)
 
 
+# Работа с выбросами
+# Некоторые дома в Edwards были в частичной продаже (SaleCondition)
+def indicate_outliers(df):
+    X_new = pd.DataFrame()
+    X_new["Outlier"] = (df.Neighborhood == "Edwards") & (df.SaleCondition == "Partial")
+    return X_new
+
+
+# Целевое кодирование (Target Encoding)
+# Target Encoding почти тоже самое, что и cross-validation
+class CrossFoldEncoder:
+    def __init__(self, encoder, **kwargs):
+        self.encoder_ = encoder
+        self.kwargs_ = kwargs  # keyword arguments for the encoder
+        self.cv_ = KFold(n_splits=5)
+
+    def fit_transform(self, X, y, cols):
+        self.fitted_encoders_ = []
+        self.cols_ = cols
+        X_encoded = []
+        for idx_encode, idx_train in self.cv_.split(X):
+            fitted_encoder = self.encoder_(cols=cols, **self.kwargs_)
+            fitted_encoder.fit(
+                X.iloc[idx_encode, :], y.iloc[idx_encode],
+            )
+            X_encoded.append(fitted_encoder.transform(X.iloc[idx_train, :])[cols])
+            self.fitted_encoders_.append(fitted_encoder)
+        X_encoded = pd.concat(X_encoded)
+        X_encoded.columns = [name + "_encoded" for name in X_encoded.columns]
+        return X_encoded
+
+    def transform(self, X):
+        from functools import reduce
+
+        X_encoded_list = []
+        for fitted_encoder in self.fitted_encoders_:
+            X_encoded = fitted_encoder.transform(X)
+            X_encoded_list.append(X_encoded[self.cols_])
+        X_encoded = reduce(
+            lambda x, y: x.add(y, fill_value=0), X_encoded_list
+        ) / len(X_encoded_list)
+        X_encoded.columns = [name + "_encoded" for name in X_encoded.columns]
+        return X_encoded
+    
+    
+    
+# Собираем всё вместе
+def create_features(df, df_test=None):
+    X = df.copy()
+    y = X.pop("SalePrice")
+    mi_scores = make_mi_scores(X, y)
+
+    if df_test is not None:
+        X_test = df_test.copy()
+        X_test.pop("SalePrice")
+        X = pd.concat([X, X_test])
+
+    X = drop_uninformative(X, mi_scores)
+
+    X = X.join(mathematical_transforms(X))
+    X = X.join(interactions(X))
+    X = X.join(counts(X))
+    X = X.join(break_down(X))
+    X = X.join(group_transforms(X))
+
+    X = X.join(pca_inspired(X))
+    X = X.join(indicate_outliers(X))
+
+    X = label_encode(X)
+
+    if df_test is not None:
+        X_test = X.loc[df_test.index, :]
+        X.drop(df_test.index, inplace=True)
+
+    encoder = CrossFoldEncoder(MEstimateEncoder, m=1)
+    X = X.join(encoder.fit_transform(X, y, cols=["MSSubClass"]))
+    if df_test is not None:
+        X_test = X_test.join(encoder.transform(X_test))
+
+    if df_test is not None:
+        return X, X_test
+    else:
+        return X
+
+df_train, df_test = load_data()
+X_train = create_features(df_train)
+y_train = df_train.loc[:, "SalePrice"]
+
+score_dataset(X_train, y_train)
+
+
+# Настраиваем гиперпараметры с помощью XGBoost (в ручную для достижениях лучшего результата)
+X_train = create_features(df_train)
+y_train = df_train.loc[:, "SalePrice"]
+
+xgb_params = dict(
+    max_depth=6,
+    learning_rate=0.01,
+    n_estimators=1000,
+    min_child_weight=1,
+    colsample_bytree=0.7,
+    subsample=0.7,
+    reg_alpha=0.5,
+    reg_lambda=1.0,
+    num_parallel_tree=1,
+)
+
+xgb = XGBRegressor(**xgb_params)
+score_dataset(X_train, y_train, xgb)
+
+
+
+# Сохраняем полученный результат
+X_train, X_test = create_features(df_train, df_test)
+y_train = df_train.loc[:, "SalePrice"]
+
+xgb = XGBRegressor(**xgb_params)
+xgb.fit(X_train, np.log(y))
+predictions = np.exp(xgb.predict(X_test))
+
+output = pd.DataFrame({'Id': X_test.index, 'SalePrice': predictions})
+output.to_csv('my_submit.csv', index=False)
+print("Done")
