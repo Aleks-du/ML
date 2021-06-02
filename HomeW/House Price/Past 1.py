@@ -218,6 +218,7 @@ mi_scores = make_mi_scores(X, y)
 # Уберем не информативные значения и проверяем
 def drop_uninformative(df, mi_scores):
     return df.loc[:, mi_scores > 0.0]
+mi_scores
 
 X = df_train.copy()
 y = X.pop("SalePrice")
@@ -227,4 +228,106 @@ score_dataset(X, y)
 
 
 
-mi_scores
+# Продолжаем определять кодировку метки для категориальных признаков
+def label_encode(df):
+    X = df.copy()
+    for colname in X.select_dtypes(["category"]):
+        X[colname] = X[colname].cat.codes
+    return X
+
+# Создаем различные функии для Pandas
+def mathematical_transforms(df):
+    X = pd.DataFrame()  # dataframe to hold new features
+    X["LivLotRatio"] = df.GrLivArea / df.LotArea
+    X["Spaciousness"] = (df.FirstFlrSF + df.SecondFlrSF) / df.TotRmsAbvGrd
+    return X
+
+def interactions(df):
+    X = pd.get_dummies(df.BldgType, prefix="Bldg")
+    X = X.mul(df.GrLivArea, axis=0)
+    return X
+
+def counts(df):
+    X = pd.DataFrame()
+    X["PorchTypes"] = df[[
+        "WoodDeckSF",
+        "OpenPorchSF",
+        "EnclosedPorch",
+        "Threeseasonporch",
+        "ScreenPorch",
+    ]].gt(0.0).sum(axis=1)
+    return X
+def break_down(df):
+    X = pd.DataFrame()
+    X["MSClass"] = df.MSSubClass.str.split("_", n=1, expand=True)[0]
+    return X
+
+def group_transforms(df):
+    X = pd.DataFrame()
+    X["MedNhbdArea"] = df.groupby("Neighborhood")["GrLivArea"].transform("median")
+    return X
+
+
+# Анализ главных компонент (Principal Component Analysis (PCA) )
+def apply_pca(X, standardize=True):
+    if standardize:
+        X = (X - X.mean(axis=0)) / X.std(axis=0)
+    pca = PCA()
+    X_pca = pca.fit_transform(X)
+    component_names = [f"PC{i+1}" for i in range(X_pca.shape[1])]
+    X_pca = pd.DataFrame(X_pca, columns=component_names)
+    loadings = pd.DataFrame(
+        pca.components_.T,
+        columns=component_names,
+        index=X.columns,
+    )
+    return pca, X_pca, loadings
+
+def plot_variance(pca, width=8, dpi=100):
+    fig, axs = plt.subplots(1, 2)
+    n = pca.n_components_
+    grid = np.arange(1, n + 1)
+    evr = pca.explained_variance_ratio_
+    axs[0].bar(grid, evr)
+    axs[0].set(
+        xlabel="Component", title="% Explained Variance", ylim=(0.0, 1.0)
+    )
+    cv = np.cumsum(evr)
+    axs[1].plot(np.r_[0, grid], np.r_[0, cv], "o-")
+    axs[1].set(
+        xlabel="Component", title="% Cumulative Variance", ylim=(0.0, 1.0)
+    )
+    fig.set(figwidth=8, dpi=100)
+    return axs
+
+
+# Один из способов использования PCA
+def pca_inspired(df):
+    X = pd.DataFrame()
+    X["Feature1"] = df.GrLivArea + df.TotalBsmtSF
+    X["Feature2"] = df.YearRemodAdd * df.TotalBsmtSF
+    return X
+
+pca_features = [
+    "GarageArea",
+    "YearRemodAdd",
+    "TotalBsmtSF",
+    "GrLivArea",
+]
+
+
+# Так выглядит корреляционная матрица для набора данных
+def corrplot(df, method="pearson", annot=True, **kwargs):
+    sns.clustermap(
+        df.corr(method),
+        vmin=-1.0,
+        vmax=1.0,
+        cmap="icefire",
+        method="complete",
+        annot=annot,
+        **kwargs,
+    )
+
+corrplot(df_train, annot=None)
+
+
